@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FOCUS+</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #fde992;
+}
+
+header {
+  background: #0a0806;
+  color: #f5fefd;
+  padding: 16px;
+  font-size: 22px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.page { display: none; padding: 20px; }
+.active { display: block; }
+
+.card {
+  background: #fde992;
+  margin: 15px 0;
+  padding: 25px;
+  border-radius: 16px;
+  font-size: 20px;
+  font-weight: 600;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  cursor: pointer;
+  text-align: center;
+}
+.card span { font-size: 30px; display: block; }
+
+.btn {
+  width: 100%;
+  padding: 16px;
+  margin-top: 15px;
+  font-size: 18px;
+  border: none;
+  border-radius: 14px;
+  color: #f5fefd;
+  cursor: pointer;
+}
+.blue { background: #5dade2; }
+.orange { background: #f9e076; color:#000; }
+.green { background: #4b371c; }
+.gray { background: #7f8c8d; }
+
+input[type=number], input[type=range] {
+  width: 100%;
+  padding: 14px;
+  font-size: 18px;
+  margin: 10px 0 20px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+}
+
+.timer-display {
+  font-size: 40px;
+  font-weight: bold;
+  margin: 20px 0;
+}
+
+#lampPreview {
+  font-size: 80px;
+  text-align: center;
+  margin: 20px 0;
+}
+
+#status {
+  margin: 12px;
+  font-weight: 600;
+}
+</style>
+</head>
+
+<body>
+
+<header>FOCUS+</header>
+
+<!-- Looping Audio -->
+<audio id="studySound" src="study_end.wav.lnk" loop></audio>
+<audio id="breakSound" src="break_end.wav.lnk" loop></audio>
+
+<div id="status">Status: Idle</div>
+
+<!-- HOME -->
+<div id="home" class="page active">
+  <div class="card" onclick="showPage('timer')"><span>⏱</span>Study Timer</div>
+  <div class="card" onclick="showPage('light')"><span>💡</span>Lighting Control</div>
+  <div class="card" onclick="showPage('music')"><span>🎵</span>Music</div>
+  <div class="card" onclick="showPage('bluetooth')"><span>📶</span>Bluetooth Pairing</div>
+</div>
+
+<!-- TIMER -->
+<div id="timer" class="page">
+  <h2>Study Timer</h2>
+
+  <label>Study Time (minutes)</label>
+  <input type="number" id="studyTime" value="25">
+
+  <label>Break Time (minutes)</label>
+  <input type="number" id="breakTime" value="5">
+
+  <div class="timer-display" id="display">00:00</div>
+
+  <button class="btn green" onclick="startTimer()">Start</button>
+  <button class="btn gray" onclick="stopTimer()">Stop</button>
+  <button class="btn gray" onclick="stopReminder()">Stop Reminder 🔕</button>
+  <button class="btn blue" onclick="showPage('home')">⬅ Back</button>
+</div>
+
+<!-- LIGHT -->
+<div id="light" class="page">
+  <h2>Lighting Control</h2>
+  <div id="lampPreview">💡</div>
+
+  <!-- Lamp Modes -->
+  <button class="btn blue" onclick="setLampMode('study')">Study Mode</button>
+  <button class="btn orange" onclick="setLampMode('rest')">Rest Mode</button>
+  <button class="btn green" onclick="setLampMode('calm')">Calm Mode</button>
+
+  <!-- Dimmer Slider -->
+  <label>Brightness</label>
+  <input type="range" id="brightness" min="0" max="100" value="100" oninput="adjustBrightness(this.value)">
+
+  <button class="btn gray" onclick="showPage('home')">⬅ Back</button>
+</div>
+
+<!-- MUSIC -->
+<div id="music" class="page">
+  <h2>Focus Music</h2>
+
+  <!-- Spotify Login -->
+  <button class="btn green" onclick="loginSpotify()">🎵 Login to Spotify</button>
+
+  <!-- Embed Player -->
+  <iframe id="spotifyEmbed"
+          style="border-radius:12px"
+          src="https://open.spotify.com/embed/playlist/37i9dQZF1DX8NTLI2TtZa6"
+          width="100%"
+          height="380"
+          frameborder="0"
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture">
+  </iframe>
+
+  <button class="btn blue" onclick="showPage('home')">⬅ Back</button>
+</div>
+
+<!-- BLUETOOTH -->
+<div id="bluetooth" class="page">
+  <h2>Bluetooth Pairing</h2>
+
+  <button class="btn blue" onclick="connectBluetooth()">🔍 Scan & Connect</button>
+
+  <button class="btn gray" onclick="showPage('home')">⬅ Back</button>
+</div>
+
+<script>
+/* Page Navigation */
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* Status Updates */
+function updateStatus(msg) {
+  document.getElementById("status").innerText = "Status: " + msg;
+}
+
+/* Timer */
+let countdown, timeLeft, isStudy;
+
+function startTimer() {
+  clearInterval(countdown);
+
+  stopReminder(); // ensure no sound is playing from previous session
+
+  const study = studyTime.value * 60;
+  const rest = breakTime.value * 60;
+
+  timeLeft = study;
+  isStudy = true;
+
+  setLampMode('study'); // Auto lamp mode for study
+  updateStatus("📚 Study started");
+  updateDisplay();
+
+  countdown = setInterval(() => {
+    timeLeft--;
+
+    if (timeLeft <= 0) {
+      if (isStudy) {
+        playSound('studySound');  // loop sound
+        timeLeft = rest;
+        isStudy = false;
+        setLampMode('rest'); // Auto lamp mode for break
+        updateStatus("☕ Break time");
+      } else {
+        playSound('breakSound');  // loop sound
+        clearInterval(countdown);
+        updateStatus("✅ Session completed");
+      }
+    }
+    updateDisplay();
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(countdown);
+  display.innerText = "00:00";
+  stopReminder(); // stop any playing reminder
+  updateStatus("⏹ Session stopped");
+}
+
+/* Play Sound */
+function playSound(id){
+  const audio = document.getElementById(id);
+  audio.currentTime = 0;
+  audio.play();
+}
+
+/* Stop Reminder Sound */
+function stopReminder(){
+  const studyAudio = document.getElementById('studySound');
+  const breakAudio = document.getElementById('breakSound');
+  studyAudio.pause(); studyAudio.currentTime=0;
+  breakAudio.pause(); breakAudio.currentTime=0;
+  updateStatus('🔕 Reminder stopped');
+}
+
+/* Timer Display */
+function updateDisplay() {
+  const m = Math.floor(timeLeft / 60);
+  const s = timeLeft % 60;
+  display.innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+}
+
+/* Lighting Modes */
+function setLampMode(mode) {
+  const lamp = document.getElementById('lampPreview');
+  if(mode==='study'){ lamp.textContent='⚪'; lamp.style.color='#FFFFFF'; lamp.style.opacity=1; }
+  if(mode==='rest'){ lamp.textContent='🟡'; lamp.style.color='#FFD700'; lamp.style.opacity=0.5; }
+  if(mode==='calm'){ lamp.textContent='🔵'; lamp.style.color='#1E90FF'; lamp.style.opacity=0.7; }
+  document.getElementById('brightness').value = lamp.style.opacity*100; // sync slider
+  updateStatus('💡 Lamp mode: ' + mode);
+}
+
+/* Dimmer Slider */
+function adjustBrightness(value){
+  const lamp=document.getElementById('lampPreview');
+  lamp.style.opacity=value/100;
+  lamp.style.fontSize=(50 + value/2)+'px'; // visual size effect
+  updateStatus('💡 Brightness: '+value+'%');
+}
+
+/* Web Bluetooth */
+async function connectBluetooth() {
+  try {
+    updateStatus("🔍 Searching Bluetooth devices...");
+    const device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: ['battery_service']
+    });
+    updateStatus("📶 Connecting to " + device.name);
+    await device.gatt.connect();
+    updateStatus("✅ Connected to " + device.name);
+  } catch (err) {
+    console.error(err);
+    updateStatus("❌ Bluetooth connection failed");
+  }
+}
+
+/* Spotify OAuth */
+const clientId = 'YOUR_SPOTIFY_CLIENT_ID'; // Replace with your client ID
+const redirectUri = window.location.href.split('#')[0];
+const scopes = 'playlist-read-private';
+
+function loginSpotify() {
+  const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}`;
+  window.location = authUrl;
+}
+
+window.onload = () => {
+  if (window.location.hash) {
+    const hash = window.location.hash.substring(1).split('&').reduce((acc, cur) => {
+      const [key, value] = cur.split('=');
+      acc[key] = value;
+      return acc;
+    }, {});
+    
+    if (hash.access_token) {
+      window.accessToken = hash.access_token;
+      updateStatus('✅ Spotify connected!');
+      getUserPlaylists();
+    }
+  }
+};
+
+async function getUserPlaylists() {
+  try {
+    const res = await fetch('https://api.spotify.com/v1/me/playlists', {
+      headers: { 'Authorization': 'Bearer ' + window.accessToken }
+    });
+    const data = await res.json();
+
+    let html = '<select id="playlistSelect" onchange="loadPlaylist(this.value)">';
+    data.items.forEach(pl => { html += `<option value="${pl.id}">${pl.name}</option>`; });
+    html += '</select>';
+
+    document.getElementById('spotifyEmbed').insertAdjacentHTML('beforebegin', html);
+  } catch (err) {
+    console.error(err);
+    updateStatus('❌ Failed to load playlists');
+  }
+}
+
+function loadPlaylist(id) {
+  document.getElementById('spotifyEmbed').src = `https://open.spotify.com/embed/playlist/${id}`;
+  updateStatus('🎵 Playlist loaded!');
+}
+</script>
+
+</body>
+</html>
