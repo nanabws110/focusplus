@@ -88,8 +88,8 @@ input[type=number], input[type=range] {
 <header>FOCUS+</header>
 
 <!-- Looping Audio -->
-<audio id="studySound" src="study_end.wav.lnk" loop></audio>
-<audio id="breakSound" src="break_end.wav.lnk" loop></audio>
+<audio id="studySound" src="study_end.wav" loop></audio>
+<audio id="breakSound" src="break_end.wav" loop></audio>
 
 <div id="status">Status: Idle</div>
 
@@ -245,7 +245,10 @@ function stopTimer() {
 function playSound(id){
   const audio = document.getElementById(id);
   audio.currentTime = 0;
-  audio.play();
+  audio.muted = false;
+  audio.play().catch(err => {
+    console.log("Audio play blocked:", err);
+  });
 }
 
 /* Stop Reminder Sound */
