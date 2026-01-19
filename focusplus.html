@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FOCUS+</title>
-<!-- NEW: PWA -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0a0806">
 
@@ -82,14 +81,13 @@ input[type=number], input[type=range] {
 }
 </style>
 </head>
-
 <body>
 
 <header>FOCUS+</header>
 
-<!-- Looping Audio -->
-<audio id="studySound" src="study_end.wav" loop></audio>
-<audio id="breakSound" src="break_end.wav" loop></audio>
+<!-- Audio -->
+<audio id="studySound" src="study_end.wav"></audio>
+<audio id="breakSound" src="break_end.wav"></audio>
 
 <div id="status">Status: Idle</div>
 
@@ -99,28 +97,24 @@ input[type=number], input[type=range] {
   <div class="card" onclick="showPage('light')"><span>💡</span>Lighting Control</div>
   <div class="card" onclick="showPage('music')"><span>🎵</span>Music</div>
   <div class="card" onclick="showPage('bluetooth')"><span>📶</span>Bluetooth Pairing</div>
-  <!-- NEW: Install App Button -->
-<button id="installBtn"
-        class="btn blue"
-        style="display:none"
-        onclick="installApp()">
-  📲 Install FOCUS+
-</button>
+  <button id="installBtn" class="btn blue" style="display:none" onclick="installApp()">📲 Install FOCUS+</button>
 </div>
 
 <!-- TIMER -->
 <div id="timer" class="page">
   <h2>Study Timer</h2>
-
   <label>Study Time (minutes)</label>
   <input type="number" id="studyTime" value="25">
 
   <label>Break Time (minutes)</label>
   <input type="number" id="breakTime" value="5">
 
+  <label>Sessions (Pomodoro cycles)</label>
+  <input type="number" id="sessionCount" value="1" min="1">
+
   <div class="timer-display" id="display">00:00</div>
 
-  <button class="btn green" onclick="startTimer()">Start</button>
+  <button class="btn green" onclick="startFullSession()">Start</button>
   <button class="btn gray" onclick="stopTimer()">Stop</button>
   <button class="btn gray" onclick="stopReminder()">Stop Reminder 🔕</button>
   <button class="btn blue" onclick="showPage('home')">⬅ Back</button>
@@ -131,12 +125,10 @@ input[type=number], input[type=range] {
   <h2>Lighting Control</h2>
   <div id="lampPreview">💡</div>
 
-  <!-- Lamp Modes -->
   <button class="btn blue" onclick="setLampMode('study')">Study Mode</button>
   <button class="btn orange" onclick="setLampMode('rest')">Rest Mode</button>
   <button class="btn green" onclick="setLampMode('calm')">Calm Mode</button>
 
-  <!-- Dimmer Slider -->
   <label>Brightness</label>
   <input type="range" id="brightness" min="0" max="100" value="100" oninput="adjustBrightness(this.value)">
 
@@ -146,25 +138,13 @@ input[type=number], input[type=range] {
 <!-- MUSIC -->
 <div id="music" class="page">
   <h2>Focus Music</h2>
-
-  <!-- Spotify Login -->
   <button class="btn green" onclick="loginSpotify()">🎵 Login to Spotify</button>
-  <!-- NEW: Open Spotify App (mobile only) -->
-<button id="openSpotifyAppBtn"
-        class="btn green"
-        style="display:none"
-        onclick="openSpotifyApp()">
-  🎧 Open in Spotify App
-</button>
+  <button id="openSpotifyAppBtn" class="btn green" style="display:none" onclick="openSpotifyApp()">🎧 Open in Spotify App</button>
 
-
-  <!-- Embed Player -->
   <iframe id="spotifyEmbed"
           style="border-radius:12px"
           src="https://open.spotify.com/embed/playlist/37i9dQZF1DX8NTLI2TtZa6"
-          width="100%"
-          height="380"
-          frameborder="0"
+          width="100%" height="380" frameborder="0"
           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture">
   </iframe>
 
@@ -174,187 +154,155 @@ input[type=number], input[type=range] {
 <!-- BLUETOOTH -->
 <div id="bluetooth" class="page">
   <h2>Bluetooth Pairing</h2>
-
-  <button id="bluetoothBtn"
-        class="btn blue"
-        onclick="connectBluetooth()">
-  🔍 Scan & Connect
-  </button>
-
+  <button id="bluetoothBtn" class="btn blue" onclick="connectBluetooth()">🔍 Scan & Connect</button>
   <button class="btn gray" onclick="showPage('home')">⬅ Back</button>
 </div>
 
 <script>
-/* Page Navigation */
+/* ===== COMMON FUNCTIONS ===== */
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
 
-/* Status Updates */
 function updateStatus(msg) {
   document.getElementById("status").innerText = "Status: " + msg;
 }
 
-/* Timer */
-let countdown, timeLeft, isStudy;
+function unlockAudio() {
+  [document.getElementById('studySound'), document.getElementById('breakSound')].forEach(audio => {
+    audio.muted = true;
+    audio.play().then(() => {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.muted = false;
+    }).catch(() => {});
+  });
+}
 
-function startTimer() {
-  clearInterval(countdown);
+function playSound(id) {
+  const audio = document.getElementById(id);
+  audio.currentTime = 0;
+  audio.play().catch(err => console.log(err));
+}
 
-  stopReminder(); // ensure no sound is playing from previous session
+function stopReminder() {
+  document.getElementById('studySound').pause();
+  document.getElementById('studySound').currentTime = 0;
+  document.getElementById('breakSound').pause();
+  document.getElementById('breakSound').currentTime = 0;
+  updateStatus('🔕 Reminder stopped');
+}
 
-  const study = studyTime.value * 60;
-  const rest = breakTime.value * 60;
+/* ===== LIGHT FUNCTIONS ===== */
+function setLampMode(mode) {
+  const lamp = document.getElementById('lampPreview');
+  if (mode === 'study') { lamp.textContent = '⚪'; lamp.style.color = '#FFFFFF'; lamp.style.opacity = 1; }
+  if (mode === 'rest') { lamp.textContent = '🟡'; lamp.style.color = '#FFD700'; lamp.style.opacity = 0.5; }
+  if (mode === 'calm') { lamp.textContent = '🔵'; lamp.style.color = '#1E90FF'; lamp.style.opacity = 0.7; }
+  document.getElementById('brightness').value = lamp.style.opacity * 100;
+  updateStatus('💡 Lamp mode: ' + mode);
+}
 
-  timeLeft = study;
-  isStudy = true;
+function adjustBrightness(value) {
+  const lamp = document.getElementById('lampPreview');
+  lamp.style.opacity = value / 100;
+  lamp.style.fontSize = (50 + value / 2) + 'px';
+  updateStatus('💡 Brightness: ' + value + '%');
+}
 
-  setLampMode('study'); // Auto lamp mode for study
-  updateStatus("📚 Study started");
+/* ===== TIMER WITH REPEAT SESSIONS ===== */
+const display = document.getElementById('display');
+let studyTimer, breakTimer, timeLeft, currentCycle, totalCycles;
+
+function startFullSession() {
+  clearInterval(studyTimer);
+  clearInterval(breakTimer);
+  unlockAudio();
+  stopReminder();
+  totalCycles = Number(document.getElementById('sessionCount').value);
+  currentCycle = 0;
+  startStudyCycle();
+}
+
+function startStudyCycle() {
+  if (currentCycle >= totalCycles) {
+    updateStatus('✅ All sessions completed');
+    display.innerText = '00:00';
+    return;
+  }
+  currentCycle++;
+  timeLeft = Number(document.getElementById('studyTime').value) * 60;
+  setLampMode('study');
+  updateStatus(`📚 Study ${currentCycle}/${totalCycles} started`);
   updateDisplay();
 
-  countdown = setInterval(() => {
+  studyTimer = setInterval(() => {
     timeLeft--;
-
-    if (timeLeft <= 0) {
-      if (isStudy) {
-        playSound('studySound');  // loop sound
-        timeLeft = rest;
-        isStudy = false;
-        setLampMode('rest'); // Auto lamp mode for break
-        updateStatus("☕ Break time");
-      } else {
-        playSound('breakSound');  // loop sound
-        clearInterval(countdown);
-        updateStatus("✅ Session completed");
-      }
-    }
     updateDisplay();
+    if (timeLeft <= 0) {
+      clearInterval(studyTimer);
+      playSound('studySound');
+      startBreakCycle();
+    }
+  }, 1000);
+}
+
+function startBreakCycle() {
+  timeLeft = Number(document.getElementById('breakTime').value) * 60;
+  setLampMode('rest');
+  updateStatus(`☕ Break ${currentCycle}/${totalCycles} started`);
+  updateDisplay();
+
+  breakTimer = setInterval(() => {
+    timeLeft--;
+    updateDisplay();
+    if (timeLeft <= 0) {
+      clearInterval(breakTimer);
+      playSound('breakSound');
+      startStudyCycle();
+    }
   }, 1000);
 }
 
 function stopTimer() {
-  clearInterval(countdown);
-  display.innerText = "00:00";
-  stopReminder(); // stop any playing reminder
-  updateStatus("⏹ Session stopped");
+  clearInterval(studyTimer);
+  clearInterval(breakTimer);
+  timeLeft = 0;
+  updateDisplay();
+  stopReminder();
+  updateStatus('⏹ Session stopped');
 }
 
-/* Play Sound */
-function playSound(id){
-  const audio = document.getElementById(id);
-  audio.currentTime = 0;
-  audio.muted = false;
-  audio.play().catch(err => {
-    console.log("Audio play blocked:", err);
-  });
-}
-
-/* Stop Reminder Sound */
-function stopReminder(){
-  const studyAudio = document.getElementById('studySound');
-  const breakAudio = document.getElementById('breakSound');
-  studyAudio.pause(); studyAudio.currentTime=0;
-  breakAudio.pause(); breakAudio.currentTime=0;
-  updateStatus('🔕 Reminder stopped');
-}
-
-/* Timer Display */
 function updateDisplay() {
   const m = Math.floor(timeLeft / 60);
   const s = timeLeft % 60;
   display.innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
 }
 
-/* Lighting Modes */
-function setLampMode(mode) {
-  const lamp = document.getElementById('lampPreview');
-  if(mode==='study'){ lamp.textContent='⚪'; lamp.style.color='#FFFFFF'; lamp.style.opacity=1; }
-  if(mode==='rest'){ lamp.textContent='🟡'; lamp.style.color='#FFD700'; lamp.style.opacity=0.5; }
-  if(mode==='calm'){ lamp.textContent='🔵'; lamp.style.color='#1E90FF'; lamp.style.opacity=0.7; }
-  document.getElementById('brightness').value = lamp.style.opacity*100; // sync slider
-  updateStatus('💡 Lamp mode: ' + mode);
-}
-
-/* Dimmer Slider */
-function adjustBrightness(value){
-  const lamp=document.getElementById('lampPreview');
-  lamp.style.opacity=value/100;
-  lamp.style.fontSize=(50 + value/2)+'px'; // visual size effect
-  updateStatus('💡 Brightness: '+value+'%');
-}
-
-/* Web Bluetooth */
-async function connectBluetooth() {
-
-  /* iOS check */
-  if (isIOS()) {
-    disableBluetooth(
-      "❌ Bluetooth not supported on iPhone browsers (Apple restriction)"
-    );
-    return;
-  }
-
-  /* HTTPS check */
-  if (!isSecureContextOK()) {
-    disableBluetooth(
-      "⚠️ Bluetooth requires HTTPS connection"
-    );
-    return;
-  }
-
-  /* Web Bluetooth support check */
-  if (!navigator.bluetooth) {
-    disableBluetooth(
-      "❌ Web Bluetooth not supported on this browser"
-    );
-    return;
-  }
-
-  /* Proceed normally (Android Chrome HTTPS) */
-  try {
-    updateStatus("🔍 Searching Bluetooth devices...");
-    const device = await navigator.bluetooth.requestDevice({
-      acceptAllDevices: true,
-      optionalServices: ['battery_service']
-    });
-
-    updateStatus("📶 Connecting to " + device.name);
-    await device.gatt.connect();
-    updateStatus("✅ Connected to " + device.name);
-
-  } catch (err) {
-    console.error(err);
-    updateStatus("❌ Bluetooth connection cancelled or failed");
-  }
-}
-
-/* Spotify OAuth */
-const clientId = 'YOUR_SPOTIFY_CLIENT_ID'; // Replace with your client ID
+/* ===== SPOTIFY ===== */
+const clientId = 'YOUR_SPOTIFY_CLIENT_ID';
 const redirectUri = window.location.href.split('#')[0];
 const scopes = 'playlist-read-private';
 
 function loginSpotify() {
-  const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}`;
-  window.location = authUrl;
+  window.location = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}`;
 }
 
-window.onload = () => {
+window.addEventListener('load', () => {
   if (window.location.hash) {
     const hash = window.location.hash.substring(1).split('&').reduce((acc, cur) => {
       const [key, value] = cur.split('=');
       acc[key] = value;
       return acc;
     }, {});
-    
     if (hash.access_token) {
       window.accessToken = hash.access_token;
       updateStatus('✅ Spotify connected!');
       getUserPlaylists();
     }
   }
-};
+});
 
 async function getUserPlaylists() {
   try {
@@ -362,11 +310,9 @@ async function getUserPlaylists() {
       headers: { 'Authorization': 'Bearer ' + window.accessToken }
     });
     const data = await res.json();
-
     let html = '<select id="playlistSelect" onchange="loadPlaylist(this.value)">';
     data.items.forEach(pl => { html += `<option value="${pl.id}">${pl.name}</option>`; });
     html += '</select>';
-
     document.getElementById('spotifyEmbed').insertAdjacentHTML('beforebegin', html);
   } catch (err) {
     console.error(err);
@@ -378,101 +324,46 @@ function loadPlaylist(id) {
   document.getElementById('spotifyEmbed').src = `https://open.spotify.com/embed/playlist/${id}`;
   updateStatus('🎵 Playlist loaded!');
 }
-/* ===============================
-   NEW: Mobile detection
-================================ */
+
 function isMobile() {
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
-/* Show Spotify App button on mobile */
 window.addEventListener('load', () => {
   if (isMobile()) {
     document.getElementById('openSpotifyAppBtn').style.display = 'block';
   }
 });
 
-/* ===============================
-   NEW: Spotify App → Browser fallback
-================================ */
 function openSpotifyApp() {
   const src = document.getElementById('spotifyEmbed').src;
   const playlistId = src.split('/playlist/')[1]?.split('?')[0];
-
   if (!playlistId) return;
-
   window.location = `spotify:playlist:${playlistId}`;
-
-  setTimeout(() => {
-    window.location = `https://open.spotify.com/playlist/${playlistId}`;
-  }, 1500);
+  setTimeout(() => { window.location = `https://open.spotify.com/playlist/${playlistId}`; }, 1500);
 }
 
-/* ===============================
-   NEW: PWA Install Banner
-================================ */
-let deferredPrompt;
-
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  deferredPrompt = e;
-  document.getElementById('installBtn').style.display = 'block';
-});
-
-function installApp() {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  deferredPrompt.userChoice.then(() => {
-    deferredPrompt = null;
-    document.getElementById('installBtn').style.display = 'none';
-  });
-}
-
-/* ===============================
-   NEW: Orientation lock (after install only)
-================================ */
-function lockOrientation() {
-  if (window.matchMedia('(display-mode: standalone)').matches) {
-    if (screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock('portrait')
-        .catch(showOrientationFallback);
-    }
+/* ===== BLUETOOTH ===== */
+async function connectBluetooth() {
+  if (isIOS()) { disableBluetooth("❌ Bluetooth not supported on iPhone browsers"); return; }
+  if (!window.isSecureContext) { disableBluetooth("⚠️ Bluetooth requires HTTPS"); return; }
+  if (!navigator.bluetooth) { disableBluetooth("❌ Web Bluetooth not supported"); return; }
+  try {
+    updateStatus("🔍 Searching Bluetooth devices...");
+    const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['battery_service'] });
+    updateStatus("📶 Connecting to " + device.name);
+    await device.gatt.connect();
+    updateStatus("✅ Connected to " + device.name);
+  } catch(err) {
+    console.error(err);
+    updateStatus("❌ Bluetooth connection cancelled or failed");
   }
 }
 
-function showOrientationFallback() {
-  const msg = document.getElementById('orientationMsg');
-  msg.style.display = 'block';
-  setTimeout(() => msg.style.display = 'none', 3000);
-}
-
-/* Trigger after user interaction */
-document.addEventListener('click', lockOrientation);
-
-/* ===============================
-   NEW: Service Worker
-================================ */
-if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
-  navigator.serviceWorker.register('sw.js')
-    .then(() => console.log('✅ Service Worker registered'))
-    .catch(err => console.log('SW skipped:', err));
-}
-
-/* ===============================
-   NEW: Bluetooth environment checks
-================================ */
-
-/* Detect iOS */
 function isIOS() {
   return /iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
-/* Detect HTTPS */
-function isSecureContextOK() {
-  return window.isSecureContext;
-}
-
-/* Disable Bluetooth button gracefully */
 function disableBluetooth(reason) {
   const btn = document.getElementById('bluetoothBtn');
   btn.disabled = true;
@@ -481,24 +372,6 @@ function disableBluetooth(reason) {
   btn.innerText = '🚫 Bluetooth Unavailable';
   updateStatus(reason);
 }
-
 </script>
-
-<!-- NEW: Orientation fallback message -->
-<div id="orientationMsg"
-     style="display:none;
-            position:fixed;
-            bottom:20px;
-            left:50%;
-            transform:translateX(-50%);
-            background:#000;
-            color:#fff;
-            padding:12px 18px;
-            border-radius:12px;
-            font-size:14px;
-            z-index:999;">
-  🔄 Please keep your phone upright for best experience
-</div>
-
 </body>
 </html>
