@@ -4,114 +4,56 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FOCUS+</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0a0806">
 
 <style>
-body {
-  margin: 0;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  background: #fde992;
-}
+/* ===== GENERAL STYLES ===== */
+body { margin:0; font-family:'Segoe UI',Arial,sans-serif; background:#fde992; }
+header { background:#0a0806; color:#f5fefd; padding:16px; font-size:22px; text-align:center; font-weight:bold; }
+.page { display:none; padding:20px; }
+.active { display:block; }
 
-header {
-  background: #0a0806;
-  color: #f5fefd;
-  padding: 16px;
-  font-size: 22px;
-  text-align: center;
-  font-weight: bold;
-}
+.card { background:#fde992; margin:15px 0; padding:25px; border-radius:16px; font-size:20px; font-weight:600; box-shadow:0 4px 10px rgba(0,0,0,0.08); cursor:pointer; text-align:center; }
+.card span { font-size:30px; display:block; }
 
-.page { display: none; padding: 20px; }
-.active { display: block; }
+.btn { width:100%; padding:16px; margin-top:15px; font-size:18px; border:none; border-radius:14px; color:#f5fefd; cursor:pointer; }
+.blue { background:#5dade2; } .orange { background:#f9e076; color:#000; } .green { background:#4b371c; } .gray { background:#7f8c8d; }
 
-.card {
-  background: #fde992;
-  margin: 15px 0;
-  padding: 25px;
-  border-radius: 16px;
-  font-size: 20px;
-  font-weight: 600;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-  cursor: pointer;
-  text-align: center;
-}
-.card span { font-size: 30px; display: block; }
+input[type=number], input[type=range] { width:100%; padding:14px; font-size:18px; margin:10px 0 20px; border-radius:10px; border:1px solid #ccc; }
 
-.btn {
-  width: 100%;
-  padding: 16px;
-  margin-top: 15px;
-  font-size: 18px;
-  border: none;
-  border-radius: 14px;
-  color: #f5fefd;
-  cursor: pointer;
-}
-.blue { background: #5dade2; }
-.orange { background: #f9e076; color:#000; }
-.green { background: #4b371c; }
-.gray { background: #7f8c8d; }
-
-input[type=number], input[type=range] {
-  width: 100%;
-  padding: 14px;
-  font-size: 18px;
-  margin: 10px 0 20px;
-  border-radius: 10px;
-  border: 1px solid #ccc;
-}
-
-.timer-display {
-  font-size: 40px;
-  font-weight: bold;
-  margin: 20px 0;
-}
-
-#lampPreview {
-  font-size: 80px;
-  text-align: center;
-  margin: 20px 0;
-}
-
-#status {
-  margin: 12px;
-  font-weight: 600;
-}
+.timer-display { font-size:40px; font-weight:bold; margin:20px 0; }
+#lampPreview { font-size:80px; text-align:center; margin:20px 0; }
+#status { margin:12px; font-weight:600; }
 </style>
 </head>
+
 <body>
 
 <header>FOCUS+</header>
 
 <!-- Audio -->
-<audio id="studySound" src="study_end.wav"></audio>
-<audio id="breakSound" src="break_end.wav"></audio>
+<audio id="studySound" src="assets/study_end.wav"></audio>
+<audio id="breakSound" src="assets/break_end.wav"></audio>
 
 <div id="status">Status: Idle</div>
 
-<!-- HOME -->
+<!-- ===== HOME PAGE ===== -->
 <div id="home" class="page active">
   <div class="card" onclick="showPage('timer')"><span>⏱</span>Study Timer</div>
   <div class="card" onclick="showPage('light')"><span>💡</span>Lighting Control</div>
   <div class="card" onclick="showPage('music')"><span>🎵</span>Music</div>
   <div class="card" onclick="showPage('bluetooth')"><span>📶</span>Bluetooth Pairing</div>
-  <button id="installBtn" class="btn blue" style="display:none" onclick="installApp()">📲 Install FOCUS+</button>
 </div>
 
-<!-- TIMER -->
+<!-- ===== TIMER PAGE ===== -->
 <div id="timer" class="page">
   <h2>Study Timer</h2>
   <label>Study Time (minutes)</label>
   <input type="number" id="studyTime" value="25">
-
   <label>Break Time (minutes)</label>
   <input type="number" id="breakTime" value="5">
-
-  <label>Sessions (Pomodoro cycles)</label>
-  <input type="number" id="sessionCount" value="1" min="1">
-
+  <label>Repeat Sessions</label>
+  <input type="number" id="repeatSessions" value="1" min="1">
+  
   <div class="timer-display" id="display">00:00</div>
 
   <button class="btn green" onclick="startFullSession()">Start</button>
@@ -120,29 +62,25 @@ input[type=number], input[type=range] {
   <button class="btn blue" onclick="showPage('home')">⬅ Back</button>
 </div>
 
-<!-- LIGHT -->
+<!-- ===== LIGHT PAGE ===== -->
 <div id="light" class="page">
   <h2>Lighting Control</h2>
   <div id="lampPreview">💡</div>
-
   <button class="btn blue" onclick="setLampMode('study')">Study Mode</button>
   <button class="btn orange" onclick="setLampMode('rest')">Rest Mode</button>
   <button class="btn green" onclick="setLampMode('calm')">Calm Mode</button>
-
   <label>Brightness</label>
   <input type="range" id="brightness" min="0" max="100" value="100" oninput="adjustBrightness(this.value)">
-
   <button class="btn gray" onclick="showPage('home')">⬅ Back</button>
 </div>
 
-<!-- MUSIC -->
+<!-- ===== MUSIC PAGE ===== -->
 <div id="music" class="page">
   <h2>Focus Music</h2>
   <button class="btn green" onclick="loginSpotify()">🎵 Login to Spotify</button>
   <button id="openSpotifyAppBtn" class="btn green" style="display:none" onclick="openSpotifyApp()">🎧 Open in Spotify App</button>
 
-  <iframe id="spotifyEmbed"
-          style="border-radius:12px"
+  <iframe id="spotifyEmbed" style="border-radius:12px"
           src="https://open.spotify.com/embed/playlist/37i9dQZF1DX8NTLI2TtZa6"
           width="100%" height="380" frameborder="0"
           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture">
@@ -151,7 +89,7 @@ input[type=number], input[type=range] {
   <button class="btn blue" onclick="showPage('home')">⬅ Back</button>
 </div>
 
-<!-- BLUETOOTH -->
+<!-- ===== BLUETOOTH PAGE ===== -->
 <div id="bluetooth" class="page">
   <h2>Bluetooth Pairing</h2>
   <button id="bluetoothBtn" class="btn blue" onclick="connectBluetooth()">🔍 Scan & Connect</button>
@@ -159,219 +97,111 @@ input[type=number], input[type=range] {
 </div>
 
 <script>
-/* ===== COMMON FUNCTIONS ===== */
-function showPage(id) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+/* ===== PAGE NAVIGATION ===== */
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
 
-function updateStatus(msg) {
-  document.getElementById("status").innerText = "Status: " + msg;
+/* ===== STATUS & AUDIO ===== */
+function updateStatus(msg){ document.getElementById("status").innerText="Status: "+msg; }
+function unlockAudio(){ [document.getElementById('studySound'),document.getElementById('breakSound')].forEach(a=>{ a.muted=true; a.play().then(()=>{a.pause();a.currentTime=0;a.muted=false;}).catch(()=>{}); }); }
+function playSound(id){ const a=document.getElementById(id); a.currentTime=0; a.play().catch(err=>console.log(err)); }
+function stopReminder(){ document.getElementById('studySound').pause(); document.getElementById('studySound').currentTime=0; document.getElementById('breakSound').pause(); document.getElementById('breakSound').currentTime=0; updateStatus('🔕 Reminder stopped'); }
+
+/* ===== LIGHTS ===== */
+function setLampMode(mode){
+  const lamp=document.getElementById('lampPreview');
+  if(mode==='study'){ lamp.textContent='⚪'; lamp.style.color='#FFFFFF'; lamp.style.opacity=1; }
+  if(mode==='rest'){ lamp.textContent='🟡'; lamp.style.color='#FFD700'; lamp.style.opacity=0.5; }
+  if(mode==='calm'){ lamp.textContent='🔵'; lamp.style.color='#1E90FF'; lamp.style.opacity=0.7; }
+  document.getElementById('brightness').value=lamp.style.opacity*100;
+  updateStatus('💡 Lamp mode: '+mode);
+}
+function adjustBrightness(value){
+  const lamp=document.getElementById('lampPreview');
+  lamp.style.opacity=value/100; lamp.style.fontSize=(50+value/2)+'px';
+  updateStatus('💡 Brightness: '+value+'%');
 }
 
-function unlockAudio() {
-  [document.getElementById('studySound'), document.getElementById('breakSound')].forEach(audio => {
-    audio.muted = true;
-    audio.play().then(() => {
-      audio.pause();
-      audio.currentTime = 0;
-      audio.muted = false;
-    }).catch(() => {});
-  });
+/* ===== TIMER LOGIC ===== */
+const display=document.getElementById('display');
+let studyTimer, breakTimer, sessionCount=0, totalSessions=1, timeLeft, isStudy=false;
+
+function startFullSession(){
+  clearInterval(studyTimer); clearInterval(breakTimer);
+  unlockAudio(); stopReminder();
+  sessionCount=0;
+  totalSessions=Number(document.getElementById('repeatSessions').value)||1;
+  startStudy();
 }
 
-function playSound(id) {
-  const audio = document.getElementById(id);
-  audio.currentTime = 0;
-  audio.play().catch(err => console.log(err));
+function startStudy(){
+  if(sessionCount>=totalSessions){ updateStatus('✅ All sessions completed'); return; }
+  const studySec=Number(document.getElementById('studyTime').value)*60;
+  timeLeft=studySec; isStudy=true;
+  setLampMode('study'); updateStatus(`📚 Study started (Session ${sessionCount+1}/${totalSessions})`); updateDisplay();
+  studyTimer=setInterval(()=>{
+    timeLeft--; updateDisplay();
+    if(timeLeft<=0){ clearInterval(studyTimer); playSound('studySound'); startBreak(); }
+  },1000);
 }
 
-function stopReminder() {
-  document.getElementById('studySound').pause();
-  document.getElementById('studySound').currentTime = 0;
-  document.getElementById('breakSound').pause();
-  document.getElementById('breakSound').currentTime = 0;
-  updateStatus('🔕 Reminder stopped');
+function startBreak(){
+  const breakSec=Number(document.getElementById('breakTime').value)*60;
+  timeLeft=breakSec; isStudy=false;
+  setLampMode('rest'); updateStatus(`☕ Break started (Session ${sessionCount+1}/${totalSessions})`); updateDisplay();
+  breakTimer=setInterval(()=>{
+    timeLeft--; updateDisplay();
+    if(timeLeft<=0){ clearInterval(breakTimer); playSound('breakSound'); sessionCount++; startStudy(); }
+  },1000);
 }
 
-/* ===== LIGHT FUNCTIONS ===== */
-function setLampMode(mode) {
-  const lamp = document.getElementById('lampPreview');
-  if (mode === 'study') { lamp.textContent = '⚪'; lamp.style.color = '#FFFFFF'; lamp.style.opacity = 1; }
-  if (mode === 'rest') { lamp.textContent = '🟡'; lamp.style.color = '#FFD700'; lamp.style.opacity = 0.5; }
-  if (mode === 'calm') { lamp.textContent = '🔵'; lamp.style.color = '#1E90FF'; lamp.style.opacity = 0.7; }
-  document.getElementById('brightness').value = lamp.style.opacity * 100;
-  updateStatus('💡 Lamp mode: ' + mode);
-}
-
-function adjustBrightness(value) {
-  const lamp = document.getElementById('lampPreview');
-  lamp.style.opacity = value / 100;
-  lamp.style.fontSize = (50 + value / 2) + 'px';
-  updateStatus('💡 Brightness: ' + value + '%');
-}
-
-/* ===== TIMER WITH REPEAT SESSIONS ===== */
-const display = document.getElementById('display');
-let studyTimer, breakTimer, timeLeft, currentCycle, totalCycles;
-
-function startFullSession() {
-  clearInterval(studyTimer);
-  clearInterval(breakTimer);
-  unlockAudio();
-  stopReminder();
-  totalCycles = Number(document.getElementById('sessionCount').value);
-  currentCycle = 0;
-  startStudyCycle();
-}
-
-function startStudyCycle() {
-  if (currentCycle >= totalCycles) {
-    updateStatus('✅ All sessions completed');
-    display.innerText = '00:00';
-    return;
-  }
-  currentCycle++;
-  timeLeft = Number(document.getElementById('studyTime').value) * 60;
-  setLampMode('study');
-  updateStatus(`📚 Study ${currentCycle}/${totalCycles} started`);
-  updateDisplay();
-
-  studyTimer = setInterval(() => {
-    timeLeft--;
-    updateDisplay();
-    if (timeLeft <= 0) {
-      clearInterval(studyTimer);
-      playSound('studySound');
-      startBreakCycle();
-    }
-  }, 1000);
-}
-
-function startBreakCycle() {
-  timeLeft = Number(document.getElementById('breakTime').value) * 60;
-  setLampMode('rest');
-  updateStatus(`☕ Break ${currentCycle}/${totalCycles} started`);
-  updateDisplay();
-
-  breakTimer = setInterval(() => {
-    timeLeft--;
-    updateDisplay();
-    if (timeLeft <= 0) {
-      clearInterval(breakTimer);
-      playSound('breakSound');
-      startStudyCycle();
-    }
-  }, 1000);
-}
-
-function stopTimer() {
-  clearInterval(studyTimer);
-  clearInterval(breakTimer);
-  timeLeft = 0;
-  updateDisplay();
-  stopReminder();
-  updateStatus('⏹ Session stopped');
-}
-
-function updateDisplay() {
-  const m = Math.floor(timeLeft / 60);
-  const s = timeLeft % 60;
-  display.innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-}
+function stopTimer(){ clearInterval(studyTimer); clearInterval(breakTimer); timeLeft=0; updateDisplay(); stopReminder(); updateStatus('⏹ Session stopped'); }
+function updateDisplay(){ const m=Math.floor(timeLeft/60), s=timeLeft%60; display.innerText=`${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`; }
 
 /* ===== SPOTIFY ===== */
-const clientId = 'YOUR_SPOTIFY_CLIENT_ID';
-const redirectUri = window.location.href.split('#')[0];
-const scopes = 'playlist-read-private';
-
-function loginSpotify() {
-  window.location = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}`;
-}
-
-window.addEventListener('load', () => {
-  if (window.location.hash) {
-    const hash = window.location.hash.substring(1).split('&').reduce((acc, cur) => {
-      const [key, value] = cur.split('=');
-      acc[key] = value;
-      return acc;
-    }, {});
-    if (hash.access_token) {
-      window.accessToken = hash.access_token;
-      updateStatus('✅ Spotify connected!');
-      getUserPlaylists();
-    }
+const clientId='YOUR_SPOTIFY_CLIENT_ID';
+const redirectUri=window.location.href.split('#')[0]; const scopes='playlist-read-private';
+function loginSpotify(){ window.location=`https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}`; }
+window.addEventListener('load',()=>{
+  if(window.location.hash){
+    const hash=window.location.hash.substring(1).split('&').reduce((acc,cur)=>{ const [k,v]=cur.split('='); acc[k]=v; return acc; },{});
+    if(hash.access_token){ window.accessToken=hash.access_token; updateStatus('✅ Spotify connected!'); getUserPlaylists(); }
   }
 });
-
-async function getUserPlaylists() {
-  try {
-    const res = await fetch('https://api.spotify.com/v1/me/playlists', {
-      headers: { 'Authorization': 'Bearer ' + window.accessToken }
-    });
-    const data = await res.json();
-    let html = '<select id="playlistSelect" onchange="loadPlaylist(this.value)">';
-    data.items.forEach(pl => { html += `<option value="${pl.id}">${pl.name}</option>`; });
-    html += '</select>';
-    document.getElementById('spotifyEmbed').insertAdjacentHTML('beforebegin', html);
-  } catch (err) {
-    console.error(err);
-    updateStatus('❌ Failed to load playlists');
-  }
+async function getUserPlaylists(){
+  try{
+    const res=await fetch('https://api.spotify.com/v1/me/playlists',{headers:{Authorization:'Bearer '+window.accessToken}});
+    const data=await res.json();
+    let html='<select id="playlistSelect" onchange="loadPlaylist(this.value)">';
+    data.items.forEach(pl=>{ html+=`<option value="${pl.id}">${pl.name}</option>`; });
+    html+='</select>';
+    document.getElementById('spotifyEmbed').insertAdjacentHTML('beforebegin',html);
+  }catch(err){ console.error(err); updateStatus('❌ Failed to load playlists'); }
 }
-
-function loadPlaylist(id) {
-  document.getElementById('spotifyEmbed').src = `https://open.spotify.com/embed/playlist/${id}`;
-  updateStatus('🎵 Playlist loaded!');
-}
-
-function isMobile() {
-  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
-
-window.addEventListener('load', () => {
-  if (isMobile()) {
-    document.getElementById('openSpotifyAppBtn').style.display = 'block';
-  }
-});
-
-function openSpotifyApp() {
-  const src = document.getElementById('spotifyEmbed').src;
-  const playlistId = src.split('/playlist/')[1]?.split('?')[0];
-  if (!playlistId) return;
-  window.location = `spotify:playlist:${playlistId}`;
-  setTimeout(() => { window.location = `https://open.spotify.com/playlist/${playlistId}`; }, 1500);
+function loadPlaylist(id){ document.getElementById('spotifyEmbed').src=`https://open.spotify.com/embed/playlist/${id}`; updateStatus('🎵 Playlist loaded!'); }
+function isMobile(){ return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent); }
+window.addEventListener('load',()=>{ if(isMobile()){ document.getElementById('openSpotifyAppBtn').style.display='block'; } });
+function openSpotifyApp(){
+  const src=document.getElementById('spotifyEmbed').src;
+  const playlistId=src.split('/playlist/')[1]?.split('?')[0];
+  if(!playlistId) return;
+  window.location=`spotify:playlist:${playlistId}`;
+  setTimeout(()=>{ window.location=`https://open.spotify.com/playlist/${playlistId}`; },1500);
 }
 
 /* ===== BLUETOOTH ===== */
-async function connectBluetooth() {
-  if (isIOS()) { disableBluetooth("❌ Bluetooth not supported on iPhone browsers"); return; }
-  if (!window.isSecureContext) { disableBluetooth("⚠️ Bluetooth requires HTTPS"); return; }
-  if (!navigator.bluetooth) { disableBluetooth("❌ Web Bluetooth not supported"); return; }
-  try {
-    updateStatus("🔍 Searching Bluetooth devices...");
-    const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['battery_service'] });
-    updateStatus("📶 Connecting to " + device.name);
-    await device.gatt.connect();
-    updateStatus("✅ Connected to " + device.name);
-  } catch(err) {
-    console.error(err);
-    updateStatus("❌ Bluetooth connection cancelled or failed");
-  }
-}
-
-function isIOS() {
-  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
-
-function disableBluetooth(reason) {
-  const btn = document.getElementById('bluetoothBtn');
-  btn.disabled = true;
-  btn.classList.remove('blue');
-  btn.classList.add('gray');
-  btn.innerText = '🚫 Bluetooth Unavailable';
-  updateStatus(reason);
+async function connectBluetooth(){
+  if(/iPhone|iPad|iPod/i.test(navigator.userAgent)){ updateStatus("❌ Bluetooth not supported on iPhone"); return; }
+  if(!window.isSecureContext){ updateStatus("⚠️ Bluetooth requires HTTPS"); return; }
+  if(!navigator.bluetooth){ updateStatus("❌ Web Bluetooth not supported"); return; }
+  try{ updateStatus("🔍 Searching Bluetooth devices..."); const device=await navigator.bluetooth.requestDevice({acceptAllDevices:true, optionalServices:['battery_service']});
+      updateStatus("📶 Connecting to "+device.name); await device.gatt.connect(); updateStatus("✅ Connected to "+device.name); }
+  catch(err){ console.error(err); updateStatus("❌ Bluetooth connection cancelled or failed"); }
 }
 </script>
+
 </body>
 </html>
+
